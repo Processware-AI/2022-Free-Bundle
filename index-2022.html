@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Bundle 2022 - Categorized Browser</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2e;
+      --panel2: #0f1728;
+      --line: #293650;
+      --text: #e5e7eb;
+      --muted: #91a0bd;
+      --accent: #38bdf8;
+      --accent2: #22d3ee;
+      --chip: #1e293b;
+      --active: #1e293b;
+      --cat-bg: #141e33;
+      --cat-hover: #1a2742;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: "Segoe UI", "Noto Sans KR", sans-serif; color: var(--text); background: var(--bg); }
+
+    .app { display: grid; grid-template-columns: 420px 1fr; height: 100vh; transition: grid-template-columns 0.3s ease; }
+    .app.sidebar-hidden { grid-template-columns: 0px 1fr; }
+
+    /* Sidebar */
+    .sidebar { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; overflow: hidden; transition: opacity 0.3s ease; }
+    .app.sidebar-hidden .sidebar { opacity: 0; pointer-events: none; }
+    .sidebar-header { padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+    .title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { font-size: 16px; color: var(--muted); margin-bottom: 8px; }
+    .count { font-size: 18px; color: var(--muted); margin-bottom: 8px; }
+    .search { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #0b1325; color: var(--text); padding: 10px 12px 10px 36px; font-size: 20px; outline: none; }
+    .search:focus { border-color: var(--accent); }
+    .search-wrap { position: relative; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 20px; pointer-events: none; }
+
+    .nav { overflow-y: auto; flex: 1; min-height: 0; }
+
+    /* Category groups */
+    .cat-group { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .cat-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; cursor: pointer; user-select: none;
+      font-size: 20px; font-weight: 600; color: var(--accent);
+      background: var(--cat-bg); border: none; width: 100%; text-align: left;
+      transition: background 0.15s;
+    }
+    .cat-header:hover { background: var(--cat-hover); }
+    .cat-header .arrow { font-size: 15px; transition: transform 0.2s; color: var(--muted); min-width: 18px; }
+    .cat-header.open .arrow { transform: rotate(90deg); }
+    .cat-badge { background: #1e3a5f; color: var(--accent2); font-size: 15px; padding: 2px 8px; border-radius: 10px; margin-left: auto; }
+    .cat-items { display: none; }
+    .cat-header.open + .cat-items { display: block; }
+    .cat-items .item { border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .cat-items .link {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px 7px 28px; text-decoration: none; color: var(--text);
+      font-size: 19px; line-height: 1.35; cursor: pointer; transition: background 0.1s;
+    }
+    .cat-items .link:hover { background: #1a2742; }
+    .cat-items .item.active .link { background: var(--active); color: #7dd3fc; font-weight: 600; }
+    .num { color: var(--muted); font-size: 15px; font-family: monospace; min-width: 42px; flex-shrink: 0; }
+    .tname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .folder-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; line-height: 1; text-decoration: none; }
+    .folder-btn:hover { color: var(--accent); background: rgba(56,189,248,0.1); }
+    .server-badge { font-size: 12px; background: #7c3aed; color: #e9d5ff; padding: 1px 6px; border-radius: 4px; flex-shrink: 0; font-weight: 600; letter-spacing: 0.3px; }
+
+    /* Search results mode */
+    .search-results { display: none; overflow-y: auto; flex: 1; min-height: 0; }
+    .search-results .item { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .search-results .link { display: flex; align-items: center; gap: 8px; padding: 9px 14px; text-decoration: none; color: var(--text); font-size: 19px; cursor: pointer; }
+    .search-results .link:hover { background: #1a2742; }
+    .search-results .item.active .link { background: var(--active); color: #7dd3fc; font-weight: 600; }
+    .search-results .cat-tag { font-size: 15px; color: var(--accent); background: #0e1b30; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
+    .no-result { padding: 20px 14px; font-size: 20px; color: var(--muted); text-align: center; }
+
+    /* Main */
+    .main { display: flex; flex-direction: column; min-height: 0; }
+    .main-header {
+      border-bottom: 1px solid var(--line); display: flex; align-items: center;
+      justify-content: space-between; padding: 0 14px; background: #0d162a;
+      height: 46px; flex-shrink: 0; gap: 12px;
+    }
+    #currentName { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .btn { border: 1px solid var(--line); background: #16233d; color: var(--text); border-radius: 7px; padding: 7px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: #1d2c49; }
+    .btn-toggle { font-size: 16px; padding: 7px 10px; }
+    .btn-accent { text-decoration: none; background: linear-gradient(90deg, #22d3ee, var(--accent)); color: #00131b; border: none; }
+    .device-group { display: flex; gap: 2px; background: #0b1325; border-radius: 7px; padding: 2px; }
+    .device-btn { border: none; background: transparent; color: var(--muted); border-radius: 5px; padding: 5px 8px; font-size: 16px; cursor: pointer; line-height: 1; }
+    .device-btn:hover { color: var(--text); background: #1d2c49; }
+    .device-btn.active { color: var(--accent); background: #16233d; }
+    .viewer-wrap { flex: 1; display: flex; justify-content: center; background: #1a1a2e; min-height: 0; overflow: hidden; }
+    #viewer { border: 0; background: #fff; min-height: 0; transition: width 0.3s ease, height 0.3s ease; }
+    .viewer-wrap.mode-desktop #viewer { width: 100%; height: 100%; }
+    .viewer-wrap.mode-tablet #viewer { width: 768px; height: 100%; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+    .viewer-wrap.mode-mobile #viewer { width: 375px; height: 100%; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+
+    .empty-state { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--muted); font-size: 14px; }
+
+    /* Responsive */
+    @media (max-width: 900px) { .app { grid-template-columns: 300px 1fr; } }
+    @media (max-width: 680px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: 40vh 1fr; }
+      .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+    }
+
+    /* Collapse/Expand all buttons */
+    .toolbar { display: flex; gap: 6px; margin-top: 8px; }
+    .toolbar button {
+      flex: 1; border: 1px solid var(--line); background: #16233d; color: var(--muted);
+      border-radius: 6px; padding: 6px; font-size: 16px; cursor: pointer;
+    }
+    .toolbar button:hover { background: #1d2c49; color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="title">Free Bundle 2022</div>
+        <div class="subtitle">Categorized Template Browser</div>
+        <div class="count" id="count"></div>
+        <div class="search-wrap">
+          <span class="search-icon">&#128269;</span>
+          <input id="search" class="search" type="search" placeholder="Search templates by name or category..." />
+        </div>
+        <div class="toolbar">
+          <button id="expandAll" type="button">Expand All</button>
+          <button id="collapseAll" type="button">Collapse All</button>
+        </div>
+      </div>
+      <div id="nav" class="nav"></div>
+      <div id="searchResults" class="search-results"></div>
+    </aside>
+
+    <main class="main" id="mainArea">
+      <div class="main-header">
+        <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+          <button id="toggleSidebar" class="btn btn-toggle" type="button" title="Toggle Sidebar">&#9776;</button>
+          <div class="device-group">
+            <button class="device-btn active" data-mode="desktop" title="Desktop">&#128187;</button>
+            <button class="device-btn" data-mode="tablet" title="Tablet">&#128195;</button>
+            <button class="device-btn" data-mode="mobile" title="Mobile">&#128241;</button>
+          </div>
+          <div id="currentName">&#8592; Select a template from the sidebar</div>
+        </div>
+        <div class="header-actions">
+          <button id="prevBtn" class="btn" type="button">&#9664; Prev</button>
+          <button id="nextBtn" class="btn" type="button">Next &#9654;</button>
+          <a id="openNewTab" class="btn btn-accent" href="#" target="_blank" rel="noopener noreferrer">Open in new tab &#8599;</a>
+        </div>
+      </div>
+      <div class="viewer-wrap mode-desktop" id="viewerWrap">
+        <iframe id="viewer" title="Template Viewer"></iframe>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById('toggleSidebar').addEventListener('click', function() {
+      document.querySelector('.app').classList.toggle('sidebar-hidden');
+    });
+    document.querySelectorAll('.device-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.device-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var wrap = document.getElementById('viewerWrap');
+        wrap.className = 'viewer-wrap mode-' + btn.dataset.mode;
+      });
+    });
+
+    const categories = {
+      "Admin / Dashboard": [
+        {"name":"001 elaadmin-master","entry":"001 elaadmin-master/index.html"},
+        {"name":"005 PurpleAdmin","entry":"005 PurpleAdmin-Free-Admin-Template-1.0.0/index.html"},
+        {"name":"008 sneat","entry":"008 sneat-1.0.0/index.html"},
+        {"name":"009 skydash","entry":"009 skydash/index.html"},
+        {"name":"021 windmill-dashboard","entry":"021 windmill-dashboard/public/index.html","server":true},
+        {"name":"022 grains","entry":"022 grains-master/index.html","server":true},
+        {"name":"023 cleopatra","entry":"023 cleopatra/dist/index.html","server":true},
+        {"name":"035 paper-dashboard","entry":"035 paper-dashboard-master/dashboard.html"},
+        {"name":"071 soft-ui-dashboard","entry":"071 soft-ui-dashboard/pages/dashboard.html"},
+        {"name":"077 corona-admin","entry":"077 corona-free-dark-bootstrap-admin-template-1.0.0/template/index.html"},
+        {"name":"081 celestialAdmin","entry":"081 celestialAdmin-free-admin-template-1.0.0/template/index.html"},
+        {"name":"091 flat-able-lite","entry":"091 flat-able-lite/dist/index.html","server":true},
+        {"name":"092 tinydash","entry":"092 tinydash-master/light/index.html"},
+        {"name":"095 react-reduction","entry":"095 react-reduction-master/public/index.html","server":true}
+      ],
+      "E-Commerce / Shopping": [
+        {"name":"007 eshopper","entry":"007 eshopper-1.0.0/index.html"},
+        {"name":"011 Zay.Shop","entry":"011 Zay.Shop/index.html"},
+        {"name":"013 karma-shop","entry":"013 karma-master/index.html"},
+        {"name":"015 shoppers","entry":"015 shoppers-gh-pages/index.html"},
+        {"name":"037 winkel","entry":"037 winkel-master/index.html"},
+        {"name":"044 amado","entry":"044 amado-master/index.html"},
+        {"name":"049 cozastore","entry":"049 cozastore-master/index.html"},
+        {"name":"051 shop-master","entry":"051 shop-master/index.html"},
+        {"name":"053 karl","entry":"053 karl-master/index.html"},
+        {"name":"058 famms","entry":"058 famms-1.0.0/index.html"},
+        {"name":"086 ashion","entry":"086 ashion-master/index.html"}
+      ],
+      "Landing Page / SaaS": [
+        {"name":"002 applab","entry":"002 applab/public/index.html","server":true},
+        {"name":"004 laslesVPN","entry":"004 laslesVPN-v1.0.0/public/index.html","server":true},
+        {"name":"010 little-squirrel","entry":"010 little-squirrel-v1.0.0/public/index.html","server":true},
+        {"name":"020 softy-pinko","entry":"020 softy-pinko-master/index.html"},
+        {"name":"024 appco","entry":"024 appco-master/index.html"},
+        {"name":"039 Nova","entry":"039 Nova-master/index.html"},
+        {"name":"060 chain","entry":"060 chain-1.0.0/index.html"},
+        {"name":"061 patrix","entry":"061 patrix-1.0.0/index.html"},
+        {"name":"065 simple","entry":"065 simple/index.html"},
+        {"name":"066 ioniq","entry":"066 ioniq/index.html"},
+        {"name":"067 nubis","entry":"067 nubis/index.html"},
+        {"name":"070 yavin","entry":"070 yavin/index.html"},
+        {"name":"079 open-enterprise","entry":"079 open-enterprise-master/public/index.html","server":true},
+        {"name":"082 rhea","entry":"082 rhea/public/index.html","server":true},
+        {"name":"083 dataWarehouse","entry":"083 dataWarehouse/public/index.html","server":true}
+      ],
+      "Portfolio / Creative": [
+        {"name":"025 neat","entry":"025 neat-master/index.html"},
+        {"name":"033 satner","entry":"033 satner-master/index.html"},
+        {"name":"042 boxus","entry":"042 boxus-master/index.html"},
+        {"name":"045 glint","entry":"045 glint-master/index.html"},
+        {"name":"075 rettro","entry":"075 rettro-main/index.html"},
+        {"name":"078 Purple.Buzz","entry":"078 Purple.Buzz/index.html"},
+        {"name":"080 karmo","entry":"080 karmo-master/index.html"},
+        {"name":"084 mosaic","entry":"084 mosaic-master/index.html"},
+        {"name":"088 rezume","entry":"088 rezume-master/index.html"},
+        {"name":"089 hightech","entry":"089 hightech-master/index.html"},
+        {"name":"098 studio","entry":"098 studio-master/index.html"}
+      ],
+      "Corporate / Business": [
+        {"name":"0064 zinc","entry":"0064 zinc/index.html"},
+        {"name":"012 titan","entry":"012 titan-master/index.html"},
+        {"name":"034 more","entry":"034 more-master/index.html"},
+        {"name":"036 majestic","entry":"036 majestic-v1.0.1/public/index.html"},
+        {"name":"043 Asentus","entry":"043 Asentus-master/html/index.html"},
+        {"name":"046 Flusk","entry":"046 Flusk-master/index.html"},
+        {"name":"054 woody","entry":"054 woody-1.0.0/index.html"},
+        {"name":"056 ensurance","entry":"056 ensurance-v1.0.0/public/index.html","server":true},
+        {"name":"059 material-kit-2","entry":"059 material-kit-2-3.0.0/index.html"},
+        {"name":"063 live-doc","entry":"063 live-doc-v1.0.0/public/index.html","server":true},
+        {"name":"085 cial","entry":"085 cial-master/index.html"},
+        {"name":"101 showcase","entry":"101 showcase/public/index.html","server":true}
+      ],
+      "Digital Agency": [
+        {"name":"016 seogram","entry":"016 seogram-1.0.0/html/index.html"},
+        {"name":"032 ultim8","entry":"032 ultim8-gh-pages/index.html"},
+        {"name":"057 digital-1","entry":"057 digital-1-1.0.0/index.html"},
+        {"name":"062 dtox","entry":"062 dtox-1.0.0/index.html"},
+        {"name":"069 patrix","entry":"069 patrix-1.0.0/index.html"},
+        {"name":"073 digitalex","entry":"073 digitalex-master/index.html"}
+      ],
+      "Medical / Healthcare": [
+        {"name":"030 medino","entry":"030 medino-master/index.html"},
+        {"name":"040 drpro","entry":"040 drpro-master/index.html"},
+        {"name":"055 violet","entry":"055 violet-master/index.html"},
+        {"name":"068 medic-care","entry":"068 medic-care/index.html"},
+        {"name":"072 convid","entry":"072 convid-master/index.html"}
+      ],
+      "Travel / Tourism": [
+        {"name":"003 jadoo","entry":"003 jadoo/public/index.html","server":true},
+        {"name":"029 tournest","entry":"029 tournest-master/index.html"},
+        {"name":"041 pacific","entry":"041 pacific-main/index.html"},
+        {"name":"097 gotrip","entry":"097 gotrip-master/index.html"}
+      ],
+      "Food / Restaurant": [
+        {"name":"006 foodwagon","entry":"006 foodwagon-v1.0.0/public/index.html","server":true},
+        {"name":"017 cakezone","entry":"017 cakezone-1.0.0/index.html"},
+        {"name":"019 foodeiblog","entry":"019 foodeiblog-master/index.html"},
+        {"name":"050 coffee","entry":"050 coffee-master/index.html"},
+        {"name":"096 dingo","entry":"096 dingo-master/index.html"},
+        {"name":"100 feane","entry":"100 feane/index.html"}
+      ],
+      "Blog / Magazine / News": [
+        {"name":"014 original","entry":"014 original-master/index.html"},
+        {"name":"087 podcast","entry":"087 podcast-master/index.html"},
+        {"name":"090 boto","entry":"090 boto-master/index.html"},
+        {"name":"094 meranda","entry":"094 meranda-master/index.html"},
+        {"name":"099 newsbox","entry":"099 newsbox-master/index.html"}
+      ],
+      "Law / Professional Services": [
+        {"name":"026 ariclaw","entry":"026 ariclaw-master/index.html"},
+        {"name":"048 Justice","entry":"048 Justice-gh-pages/index.html"}
+      ],
+      "Web Hosting": [
+        {"name":"018 ecohosting","entry":"018 ecohosting-main/index.html"},
+        {"name":"031 deerhost","entry":"031 deerhost-master/index.html"}
+      ],
+      "Real Estate": [
+        {"name":"074 makaan","entry":"074 real-estate-html-template/index.html"}
+      ],
+      "Event / Conference": [
+        {"name":"027 eventalk","entry":"027 eventalk-master/index.html"}
+      ],
+      "Car Rental / Transport": [
+        {"name":"028 carbook","entry":"028 carbook-master/index.html"}
+      ],
+      "Entertainment / Gaming": [
+        {"name":"052 anime-main","entry":"052 anime-main/index.html"},
+        {"name":"093 game-warrior","entry":"093 game-warrior-gh-pages/index.html"}
+      ],
+      "Job Board": [
+        {"name":"076 jobest","entry":"076 jobest/public/index.html","server":true}
+      ],
+      "Other": [
+        {"name":"038 sevi","entry":"038 sevi/public/index.html"},
+        {"name":"047 notes","entry":"047 notes-html-template-master/index.html"}
+      ]
+    };
+
+    // Build flat list and category map
+    const allTemplates = [];
+    const templateCatMap = {};
+    const serverSet = new Set();
+    for (const [cat, items] of Object.entries(categories)) {
+      for (const item of items) {
+        allTemplates.push(item);
+        templateCatMap[item.name] = cat;
+        if (item.server) serverSet.add(item.name);
+      }
+    }
+
+    const nav = document.getElementById('nav');
+    const searchInput = document.getElementById('search');
+    const searchResults = document.getElementById('searchResults');
+    const viewer = document.getElementById('viewer');
+    const currentNameEl = document.getElementById('currentName');
+    const openNewTab = document.getElementById('openNewTab');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const countEl = document.getElementById('count');
+
+    let currentEntry = null;
+    let filteredList = [];
+
+    // Count
+    countEl.textContent = allTemplates.length + ' templates in ' + Object.keys(categories).length + ' categories';
+
+    // Render category nav
+    function renderNav() {
+      nav.innerHTML = '';
+      for (const [cat, items] of Object.entries(categories)) {
+        const group = document.createElement('div');
+        group.className = 'cat-group';
+
+        const header = document.createElement('button');
+        header.className = 'cat-header';
+        header.innerHTML = '<span class="arrow">&#9654;</span><span>' + cat + '</span><span class="cat-badge">' + items.length + '</span>';
+        header.addEventListener('click', () => {
+          header.classList.toggle('open');
+        });
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = 'cat-items';
+
+        for (const item of items) {
+          const el = document.createElement('div');
+          el.className = 'item';
+          el.dataset.name = item.name;
+          el.dataset.entry = item.entry;
+          const numPart = item.name.match(/^(\d+)/);
+          const displayNum = numPart ? numPart[1] : '';
+          const displayName = item.name.replace(/^\d+\s*/, '').replace(/-master|-gh-pages|-main|-1\.0\.0|_master/g, '');
+          const serverTag = serverSet.has(item.name) ? '<span class="server-badge">SERVER</span>' : '';
+          el.innerHTML = '<div class="link"><span class="folder-btn" data-folder="' + encodeURI(item.name) + '/" title="Open folder">\uD83D\uDCC2</span><span class="num">' + displayNum + '</span><span class="tname">' + displayName + '</span>' + serverTag + '</div>';
+          el.querySelector('.link').addEventListener('click', (e) => {
+            if (e.target.closest('.folder-btn')) return;
+            selectTemplate(item);
+            if (!header.classList.contains('open')) header.classList.add('open');
+          });
+          el.querySelector('.folder-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.open(decodeURI(e.target.dataset.folder), '_blank');
+          });
+          itemsDiv.appendChild(el);
+        }
+
+        group.appendChild(header);
+        group.appendChild(itemsDiv);
+        nav.appendChild(group);
+      }
+    }
+
+    function selectTemplate(item) {
+      currentEntry = item;
+      viewer.src = item.entry;
+      const displayName = item.name.replace(/^\d+\s*/, '').replace(/-master|-gh-pages|-main/g, '');
+      const serverTag = serverSet.has(item.name) ? ' [SERVER]' : '';
+      currentNameEl.textContent = displayName + ' (' + (templateCatMap[item.name] || '') + ')' + serverTag;
+      openNewTab.href = item.entry;
+
+      // Highlight active
+      document.querySelectorAll('.item.active').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.item[data-name="' + item.name + '"]').forEach(el => el.classList.add('active'));
+
+      // Scroll into view in nav
+      const activeEl = nav.querySelector('.item.active');
+      if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+    }
+
+    // Search
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      if (q.length === 0) {
+        searchResults.style.display = 'none';
+        nav.style.display = '';
+        return;
+      }
+
+      nav.style.display = 'none';
+      searchResults.style.display = '';
+
+      const terms = q.split(/\s+/);
+      const matches = allTemplates.filter(t => {
+        const searchStr = (t.name + ' ' + (templateCatMap[t.name] || '')).toLowerCase();
+        return terms.every(term => searchStr.includes(term));
+      });
+
+      filteredList = matches;
+      searchResults.innerHTML = '';
+
+      if (matches.length === 0) {
+        searchResults.innerHTML = '<div class="no-result">No results found</div>';
+        return;
+      }
+
+      for (const item of matches) {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.dataset.name = item.name;
+        el.dataset.entry = item.entry;
+        const displayName = item.name.replace(/^\d+\s*/, '').replace(/-master|-gh-pages|-main|-1\.0\.0|_master/g, '');
+        const cat = templateCatMap[item.name] || '';
+        const serverTag = serverSet.has(item.name) ? '<span class="server-badge">SERVER</span>' : '';
+        el.innerHTML = '<div class="link"><span class="folder-btn" data-folder="' + encodeURI(item.name) + '/" title="Open folder">\uD83D\uDCC2</span><span class="tname">' + displayName + '</span>' + serverTag + '<span class="cat-tag">' + cat + '</span></div>';
+        el.querySelector('.link').addEventListener('click', (e) => {
+          if (e.target.closest('.folder-btn')) return;
+          selectTemplate(item);
+        });
+        el.querySelector('.folder-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.open(decodeURI(e.target.dataset.folder), '_blank');
+        });
+        if (currentEntry && currentEntry.name === item.name) el.classList.add('active');
+        searchResults.appendChild(el);
+      }
+    });
+
+    // Prev/Next
+    function getCurrentList() {
+      const q = searchInput.value.trim();
+      return q ? filteredList : allTemplates;
+    }
+
+    prevBtn.addEventListener('click', () => {
+      const list = getCurrentList();
+      if (!currentEntry || list.length === 0) return;
+      const idx = list.findIndex(t => t.name === currentEntry.name);
+      const newIdx = idx <= 0 ? list.length - 1 : idx - 1;
+      selectTemplate(list[newIdx]);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      const list = getCurrentList();
+      if (!currentEntry || list.length === 0) return;
+      const idx = list.findIndex(t => t.name === currentEntry.name);
+      const newIdx = idx >= list.length - 1 ? 0 : idx + 1;
+      selectTemplate(list[newIdx]);
+    });
+
+    // Expand/Collapse all
+    document.getElementById('expandAll').addEventListener('click', () => {
+      document.querySelectorAll('.cat-header').forEach(h => h.classList.add('open'));
+    });
+    document.getElementById('collapseAll').addEventListener('click', () => {
+      document.querySelectorAll('.cat-header').forEach(h => h.classList.remove('open'));
+    });
+
+    // Keyboard shortcut
+    document.addEventListener('keydown', (e) => {
+      if (e.target === searchInput) return;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { prevBtn.click(); e.preventDefault(); }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { nextBtn.click(); e.preventDefault(); }
+    });
+
+    // Init
+    renderNav();
+  </script>
+</body>
+</html>
